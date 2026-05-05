@@ -1,0 +1,6 @@
+{
+  "name": "Simulador de Aquíferos",
+  "description": "Simulador interativo para ensinar sobre porosidade, permeabilidade e os tipos de aquíferos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
