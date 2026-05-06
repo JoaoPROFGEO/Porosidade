@@ -160,22 +160,7 @@ export default function AquiferSimulator({ aquiferType }: AquiferSimulatorProps)
         });
       }
 
-      // Draw Shapes
-      shapes.forEach(shape => {
-          if (shape.type === 'circle') {
-              ctx.fillStyle = shape.color || '#888';
-              ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-              ctx.lineWidth = 1;
-              ctx.beginPath();
-              ctx.arc(shape.x, shape.y, shape.r, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.stroke();
-          } else if (shape.type === 'rect') {
-              drawRectSlightlyJagged(ctx, shape);
-          }
-      });
-
-      // Physics update & draw particles
+      // Physics update FIRST
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.vy += gravity;
@@ -254,15 +239,43 @@ export default function AquiferSimulator({ aquiferType }: AquiferSimulatorProps)
             particles.splice(i, 1);
             continue;
         }
-
-        // Draw Particle
-        ctx.fillStyle = aquiferType === 'carsicos' ? '#38bdf8' : '#3b82f6';
-        ctx.globalAlpha = Math.max(0, 1 - (p.life / 1500));
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, pR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
       }
+
+      // Draw Particles BEFORE shapes so they flow "inside" or "behind" rocks
+      // Draw two passes: a larger translucent watery blob, and a brighter core.
+      ctx.save();
+      ctx.filter = 'blur(1px)';
+      particles.forEach(p => {
+          const baseAlpha = Math.max(0, 1 - (p.life / 1500));
+          
+          // Outer watery blob
+          ctx.fillStyle = aquiferType === 'carsicos' ? `rgba(56, 189, 248, ${baseAlpha * 0.4})` : `rgba(59, 130, 246, ${baseAlpha * 0.4})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, pR * 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Inner denser core
+          ctx.fillStyle = aquiferType === 'carsicos' ? `rgba(56, 189, 248, ${baseAlpha * 0.8})` : `rgba(59, 130, 246, ${baseAlpha * 0.8})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, pR, 0, Math.PI * 2);
+          ctx.fill();
+      });
+      ctx.restore();
+
+      // Draw Shapes
+      shapes.forEach(shape => {
+          if (shape.type === 'circle') {
+              ctx.fillStyle = shape.color || '#888';
+              ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.arc(shape.x, shape.y, shape.r, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+          } else if (shape.type === 'rect') {
+              drawRectSlightlyJagged(ctx, shape);
+          }
+      });
 
       animationFrameId = requestAnimationFrame(loop);
     };
